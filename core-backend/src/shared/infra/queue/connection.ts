@@ -1,7 +1,7 @@
-import { Queue, Worker } from 'bullmq';
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 
-export const queueConnection = new IORedis({
+// Instanciação compatível com tipos estritos e ESM do NodeNext
+export const queueConnection = new (Redis as any)({
   host: process.env.REDIS_HOST || 'localhost',
   port: Number(process.env.REDIS_PORT) || 6379,
   maxRetriesPerRequest: null,

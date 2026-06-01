@@ -1,13 +1,7 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.queueConnection = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
-exports.queueConnection = new ioredis_1.default({
+import { Redis } from 'ioredis';
+// Instanciação compatível com tipos estritos e ESM do NodeNext
+export const queueConnection = new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: Number(process.env.REDIS_PORT) || 6379,
     maxRetriesPerRequest: null,
 });
-//# sourceMappingURL=connection.js.map

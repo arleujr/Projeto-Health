@@ -1,31 +1,24 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
-import { AppError } from '../../../errors/AppError.js';
+import { FastifyReply, FastifyRequest } from 'fastify';
+// 🚀 Corrigido: Removido o "shared" duplicado do caminho do import
+import { AppError } from '../../../../shared/errors/AppError.js';
 
-export function globalExceptionHandler(
+export async function globalExceptionHandler(
   error: Error,
-  _request: Request,
-  response: Response,
-  _next: NextFunction
-): Response {
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   if (error instanceof AppError) {
-    return response.status(error.statusCode).json({
+    return reply.status(error.statusCode).send({
       status: 'error',
       message: error.message,
     });
   }
 
-  if (error instanceof ZodError) {
-    return response.status(400).json({
-      status: 'validation_error',
-      message: 'Invalid input data.',
-      issues: error.format(),
-    });
-  }
+  // Mostra o erro real se algo grave quebrar no banco
+  console.error('❌ ERRO INTERNO DETECTADO NO BACKEND:');
+  console.error(error);
 
-  console.error('[InternalServerError]:', error);
-
-  return response.status(500).json({
+  return reply.status(500).send({
     status: 'error',
     message: 'Internal server error.',
   });

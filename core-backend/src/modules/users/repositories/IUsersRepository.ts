@@ -1,13 +1,13 @@
-import { User, Prisma } from '@prisma/client';
+import { User, Prisma, UserRole, PlanTier, SubscriptionStatus } from '@prisma/client';
 
 export interface IUserSessionContext {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   subscription: {
-    tier: string;
-    status: string;
+    tier: PlanTier;
+    status: SubscriptionStatus;
   } | null;
 }
 

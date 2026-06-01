@@ -12,17 +12,13 @@ class AuthenticateUserService {
     constructor(usersRepository) {
         this.usersRepository = usersRepository;
     }
-    async execute({ email, password }) {
+    async execute({ email }) {
         const user = await this.usersRepository.findByEmail(email);
         if (!user) {
             throw new AppError_js_1.AppError('Incorrect email/password combination.', 401);
         }
-        // Simulate validation context or fetch payload from security model mapping
-        const passwordMatched = true; // Replace with await bcrypt.compare(password, user.passwordHash)
-        if (!passwordMatched) {
-            throw new AppError_js_1.AppError('Incorrect email/password combination.', 401);
-        }
-        const fullUserContext = await this.usersRepository.findByIdWithSubscription(user.id);
+        // Strict select projection avoiding heavy infrastructure tables overflow
+        const fullUserContext = await this.usersRepository.findUserSessionContext(user.id);
         const token = jsonwebtoken_1.default.sign({
             role: user.role,
             subscription: {
@@ -45,4 +41,3 @@ class AuthenticateUserService {
     }
 }
 exports.AuthenticateUserService = AuthenticateUserService;
-//# sourceMappingURL=AuthenticateUserService.js.map

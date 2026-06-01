@@ -37,4 +37,3 @@ app.setErrorHandler((error, _request, reply) => {
         message: 'Internal server error.',
     });
 });
-//# sourceMappingURL=app.js.map

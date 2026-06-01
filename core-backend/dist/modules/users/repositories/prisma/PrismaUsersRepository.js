@@ -1,24 +1,16 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PrismaUsersRepository = void 0;
-const prisma_1 = require("@shared/infra/database/prisma");
-class PrismaUsersRepository {
-    // 1. Criação de usuário padrão
+import { prisma } from '../../../../shared/prisma/client.js';
+export class PrismaUsersRepository {
     async create(data) {
-        return prisma_1.prisma.user.create({ data });
+        return prisma.user.create({ data });
     }
-    // 2. Busca rápida por e-mail (Usando o índice que criamos no schema)
     async findByEmail(email) {
-        return prisma_1.prisma.user.findUnique({ where: { email } });
+        return prisma.user.findUnique({ where: { email } });
     }
-    // 3. Busca rápida por telefone para o Bot do WhatsApp (Usando o índice do schema)
     async findByPhone(phone) {
-        return prisma_1.prisma.user.findUnique({ where: { phone } });
+        return prisma.user.findUnique({ where: { phone } });
     }
-    // 4. Sua estratégia de Elite de SELECT estrito eliminando o include antigo
     async findUserSessionContext(id) {
-        // Zero tables inclusion overflow. Strict project SELECT schema strategy.
-        return prisma_1.prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { id },
             select: {
                 id: true,
@@ -29,11 +21,10 @@ class PrismaUsersRepository {
                     select: {
                         tier: true,
                         status: true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         });
+        return user;
     }
 }
-exports.PrismaUsersRepository = PrismaUsersRepository;
-//# sourceMappingURL=PrismaUsersRepository.js.map

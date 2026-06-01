@@ -1,26 +1,21 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.globalExceptionHandler = globalExceptionHandler;
-const zod_1 = require("zod");
-const AppError_js_1 = require("../../../errors/AppError.js");
-function globalExceptionHandler(error, _request, response, _next) {
-    if (error instanceof AppError_js_1.AppError) {
-        return response.status(error.statusCode).json({
+import { ZodError } from 'zod';
+import { AppError } from '../../../errors/AppError.js';
+export function globalExceptionHandler(error, _request, reply) {
+    if (error instanceof AppError) {
+        return reply.status(error.statusCode).send({
             status: 'error',
             message: error.message,
         });
     }
-    if (error instanceof zod_1.ZodError) {
-        return response.status(400).json({
+    if (error instanceof ZodError) {
+        return reply.status(400).send({
             status: 'validation_error',
             message: 'Invalid input data.',
             issues: error.format(),
         });
     }
-    console.error('[InternalServerError]:', error);
-    return response.status(500).json({
+    return reply.status(500).send({
         status: 'error',
         message: 'Internal server error.',
     });
 }
-//# sourceMappingURL=globalExceptionHandler.js.map

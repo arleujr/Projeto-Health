@@ -69,6 +69,10 @@ enum LeadStatus {
   LOST
 }
 
+// ==========================================
+// 1. MÓDULO DE CAPTAÇÃO E LEADS (PILAR 1)
+// ==========================================
+
 model Lead {
   id               String       @id @default(uuid())
   whatsappId       String       @unique @map("whatsapp_id")
@@ -86,12 +90,19 @@ model Lead {
   @@map("leads")
 }
 
+// ==========================================
+// 2. MÓDULO DE USUÁRIOS E ASSINATURAS
+// ==========================================
+
 model User {
   id                String        @id @default(uuid())
-  name              String
-  email             String        @unique
-  phone             String        @unique
+  name              String?       // Opcional no início (pré-cadastro)
+  email             String?       @unique // Opcional no início
+  password          String?       // Senha criada no onboarding
+  phone             String?       @unique
+  cpf               String        @unique // Chave de liberação pós-venda
   role              UserRole      @default(CLIENT)
+  isOnboardingDone  Boolean       @default(false) @map("is_onboarding_done")
   gatewayCustomerId String?       @unique @map("gateway_customer_id")
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
@@ -111,11 +122,9 @@ model User {
 
   biometrics        BiometricHistory[]
   workoutLogs       WorkoutExecutionLog[]
-  telemetryMetrics  SmartwatchDailyTelemetry[]
   mlInsights        MlPredictiveInsight[]
+  telemetries       SmartwatchDailyTelemetry[]
 
-  @@index([email])
-  @@index([phone])
   @@map("users")
 }
 
@@ -147,6 +156,10 @@ model Subscription {
 
   @@map("subscriptions")
 }
+
+// ==========================================
+// 3. MÓDULO DE ENTREGA DE PLANOS (DIETA + TREINO)
+// ==========================================
 
 model Plan {
   id          String     @id @default(uuid())
@@ -203,6 +216,10 @@ model WorkoutRoutine {
   @@map("workout_routines")
 }
 
+// ==========================================
+// 4. MÓDULO DE TELEMETRIA, IOT E EVOLUÇÃO (PILAR 2)
+// ==========================================
+
 model BiometricHistory {
   id              String   @id @default(uuid())
   userId          String   @map("user_id")
@@ -256,9 +273,13 @@ model WorkoutExecutionLog {
 
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, executedAt]) 
+  @@index([userId, executedAt])
   @@map("workout_execution_logs")
 }
+
+// ==========================================
+// 5. INTELIGÊNCIA ARTIFICIAL E SUPORTE
+// ==========================================
 
 model MlPredictiveInsight {
   id              String            @id @default(uuid())

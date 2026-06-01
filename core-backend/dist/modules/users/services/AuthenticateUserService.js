@@ -1,38 +1,40 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthenticateUserService = void 0;
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const auth_js_1 = require("../../../config/auth.js");
-const AppError_js_1 = require("../../../shared/errors/AppError.js");
-class AuthenticateUserService {
-    usersRepository;
-    constructor(usersRepository) {
-        this.usersRepository = usersRepository;
-    }
+import jwt from 'jsonwebtoken';
+import bcryptjs from 'bcryptjs';
+import { prisma } from '../../../shared/prisma/client.js';
+import { authConfig } from '../../../config/auth.js';
+import { AppError } from '../../../shared/errors/AppError.js';
+export class AuthenticateUserService {
     async execute({ email, password }) {
-        const user = await this.usersRepository.findByEmail(email);
-        if (!user) {
-            throw new AppError_js_1.AppError('Incorrect email/password combination.', 401);
+        if (!password) {
+            throw new AppError('Senha é obrigatória para efetuar o login.', 400);
         }
-        // Simulate validation context or fetch payload from security model mapping
-        const passwordMatched = true; // Replace with await bcrypt.compare(password, user.passwordHash)
+        // 1. Busca o usuário incluindo a assinatura
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: { subscription: true }
+        });
+        // Usamos "as any" para contornar o cache antigo das propriedades do prisma no node_modules
+        if (!user || !user.password) {
+            throw new AppError('Combinação de e-mail/senha incorreta.', 401);
+        }
+        // 2. Compara a senha digitada com a criptografada usando leitura dinâmica
+        const passwordMatched = await bcryptjs.compare(password, user.password);
         if (!passwordMatched) {
-            throw new AppError_js_1.AppError('Incorrect email/password combination.', 401);
+            throw new AppError('Combinação de e-mail/senha incorreta.', 401);
         }
-        const fullUserContext = await this.usersRepository.findByIdWithSubscription(user.id);
-        const token = jsonwebtoken_1.default.sign({
+        // 3. Força as opções de expiração para bater com o formato estrito do JWT
+        const jwtOptions = {
+            subject: user.id,
+            expiresIn: (authConfig.jwt.expiresIn || '1d'),
+        };
+        // 4. Cria o Token com a Role e Assinatura salvas dinamicamente
+        const token = jwt.sign({
             role: user.role,
             subscription: {
-                tier: fullUserContext?.subscription?.tier || null,
-                status: fullUserContext?.subscription?.status || null,
+                tier: user.subscription?.tier || null,
+                status: user.subscription?.status || null,
             },
-        }, auth_js_1.authConfig.jwt.secret, {
-            subject: user.id,
-            expiresIn: auth_js_1.authConfig.jwt.expiresIn,
-        });
+        }, authConfig.jwt.secret, jwtOptions);
         return {
             user: {
                 id: user.id,
@@ -44,5 +46,3 @@ class AuthenticateUserService {
         };
     }
 }
-exports.AuthenticateUserService = AuthenticateUserService;
-//# sourceMappingURL=AuthenticateUserService.js.map

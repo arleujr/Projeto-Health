@@ -23,4 +23,3 @@ function globalExceptionHandler(error, _request, response, _next) {
         message: 'Internal server error.',
     });
 }
-//# sourceMappingURL=globalExceptionHandler.js.map

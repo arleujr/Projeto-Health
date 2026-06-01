@@ -12,4 +12,3 @@ exports.authConfig = {
         expiresIn: '1d',
     },
 };
-//# sourceMappingURL=auth.js.map

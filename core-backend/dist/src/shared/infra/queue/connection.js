@@ -10,4 +10,3 @@ exports.queueConnection = new ioredis_1.default({
     port: Number(process.env.REDIS_PORT) || 6379,
     maxRetriesPerRequest: null,
 });
-//# sourceMappingURL=connection.js.map
