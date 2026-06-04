@@ -1,10 +1,9 @@
-import { Router } from 'express';
-import { CopilotController } from '../../controllers/CopilotController';
+import { FastifyInstance } from 'fastify';
+import { CopilotController } from '../../controllers/CopilotController.js'; // Adicione .js se o seu TS exigir
 
-const copilotRouter = Router();
 const copilotController = new CopilotController();
 
-// Se quiser proteger essa rota, basta injetar seu middleware de autenticação aqui
-copilotRouter.post('/chat', copilotController.handle);
-
-export default copilotRouter;
+export async function copilotRoutes(app: FastifyInstance) {
+  // A rota final ficará /v1/copilot/chat graças ao prefixo que colocaremos no app.ts
+  app.post('/chat', copilotController.handle);
+}

@@ -2,11 +2,14 @@ import fastify from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import fastifyCors from '@fastify/cors';
 
-const app = fastify();
+// A importação exata que você mapeou:
+import { copilotRoutes } from '../../../modules/copilot/http/routes/copilot.routes.js'; 
+
+export const app = fastify();
 
 // habilita CORS
 app.register(fastifyCors, {
-  origin: '*', // ou configure os domínios permitidos
+  origin: '*', 
 });
 
 // habilita JWT
@@ -14,15 +17,12 @@ app.register(fastifyJwt, {
   secret: process.env.JWT_SECRET || 'supersecret',
 });
 
+// Registrando o módulo do copiloto:
+app.register(copilotRoutes, { prefix: '/v1/copilot' });
+
+// Suas outras rotas devem estar registradas aqui também (ex: plans, users, etc)
+
 // exemplo de rota
 app.get('/ping', async () => {
   return { message: 'pong' };
-});
-
-app.listen({ port: 3333 }, (err, address) => {
-  if (err) {
-    console.error(err);
-    process.exit(1);
-  }
-  console.log(`🚀 Server running at ${address}`);
 });
