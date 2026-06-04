@@ -39,8 +39,8 @@ export async function plansRoutes(app: FastifyInstance) {
   app.get('/patient/:id', jwtAuth, getPatientByIdController.handle);
 
   // 📌 List patient tickets
-  app.get('/patients/:id/tickets', listPatientTicketsController.handle);
+ app.get('/patients/:id/tickets', jwtAuth, listPatientTicketsController.handle);
 
   // 📌 Patient summary (Raio-X)
-  app.get('/patients/:id/summary', generatePatientSummaryController.handle);
+  app.get('/patients/:id/summary', jwtAuth, generatePatientSummaryController.handle);
 }
