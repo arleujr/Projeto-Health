@@ -10,6 +10,7 @@ interface IRequest {
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
 });
 
 export class CopilotChatService {
@@ -37,7 +38,7 @@ export class CopilotChatService {
     ];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "llama3-8b-8192",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message }
