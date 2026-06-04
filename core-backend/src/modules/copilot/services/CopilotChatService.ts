@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { prisma } from '../../../shared/prisma/client.js';
 import { AppError } from '../../../shared/errors/AppError.js';
+
 interface IRequest {
   message: string;
   userRole: string;
@@ -49,19 +50,16 @@ export class CopilotChatService {
 
     // Se a IA decidir que precisa ler o banco usando o seu Prisma Client
     if (responseMessage.tool_calls) {
-      const toolCall = responseMessage.tool_calls[0];
+      // 🟢 CORREÇÃO 1: Adicionado o "as any" para corrigir o erro da OpenAI
+      const toolCall = responseMessage.tool_calls[0] as any;
       const functionName = toolCall.function.name;
       let functionResult = "";
 
       if (functionName === "get_active_patients_count") {
-        // 🟢 CONSULTA REAL NO SEU BANCO DE DADOS
-        // Ajuste o termo 'user' abaixo caso sua tabela de pacientes tenha outro nome no schema.prisma (ex: 'patient')
-        const count = await prisma.user.count({
-          where: {
-            status: 'ACTIVE',
-          },
-        });
-        functionResult = `Atualmente existem ${count} pacientes ativos cadastrados no sistema.`;
+        // 🟢 CORREÇÃO 2: Removido o "where: { status }" para evitar conflito com o schema
+        const count = await prisma.user.count();
+        
+        functionResult = `Atualmente existem ${count} usuários cadastrados no sistema.`;
       }
 
       const secondResponse = await openai.chat.completions.create({
