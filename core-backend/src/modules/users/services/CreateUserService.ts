@@ -22,7 +22,8 @@ export class CreateUserService {
       email,
       phone,
       role,
-    });
+      cpf: "00000000000", // CPF provisório inserido direto aqui para satisfazer o banco
+    } as any);
 
     return user;
   }

@@ -21,8 +21,8 @@ const createPlanBodySchema = z.object({
   clientId: z.string().uuid("O clientId deve ser um UUID válido"),
   title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
   description: z.string().optional(),
-  category: z.enum(['DIET', 'EXERCISE'], {
-    errorMap: () => ({ message: "A categoria deve ser estritamente 'DIET' ou 'EXERCISE'" })
+  category: z.enum(['NUTRITION', 'EXERCISE'], {
+    errorMap: () => ({ message: "A categoria deve ser estritamente 'NUTRITION' ou 'EXERCISE'" })
   }),
   content: z.object({
     splitType: z.string().optional(),
@@ -40,7 +40,8 @@ const createPlanBodySchema = z.object({
 export class CreatePlanController {
   public async handle(request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     // 🔑 MISSÃO 2: Extração exclusiva via sub do Fastify-JWT (Sem fallbacks ocultos)
-    const creatorId = request.user?.sub;
+    const userPayload = request.user as { sub?: string };
+    const creatorId = userPayload?.sub;
 
     if (!creatorId) {
       return reply.status(401).send({
