@@ -64,7 +64,7 @@ export class CopilotChatService {
       }
 
       const secondResponse = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "llama-3.1-8b-instant",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: message },
