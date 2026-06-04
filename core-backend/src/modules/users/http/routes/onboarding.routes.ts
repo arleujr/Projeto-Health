@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod'; // 🛡️ Importando o Zod para a Missão 1
 import { OnboardingController } from '../controllers/OnboardingController.js';
 import { AdminController } from '../controllers/AdminController.js';
 import { AuthenticateUserService } from '../../services/AuthenticateUserService.js';
@@ -6,8 +7,18 @@ import { CreateOnboardingController } from '../../controllers/CreateOnboardingCo
 import { CreateProfessionalByAdminController } from '../../controllers/CreateProfessionalByAdminController.js';
 import { AllowCpfByAdminController } from '../controllers/AllowCpfByAdminController.js';
 import { GetClientAnamnesisController } from '../controllers/GetClientAnamnesisController.js';
-// Caminho corrigido apontando para o módulo correto de planos!
 import { CreateDietPrescriptionController } from '../../../plans/controllers/CreateDietPrescriptionController.js';
+
+// 🛡️ MISSÃO 1: Schema de validação do Passwordless (Atrito Zero)
+const authenticateOtpBodySchema = z.object({
+  email: z.string().email("E-mail inválido").optional(),
+  phone: z.string().min(10, "Telefone inválido").optional(),
+  otpCode: z.string().length(6, "O código OTP deve ter exatamente 6 dígitos"),
+}).refine(data => data.email || data.phone, {
+  message: "Você deve fornecer ao menos o e-mail ou o telefone para realizar o login.",
+  path: ["email"]
+});
+
 export async function onboardingRouter(app: FastifyInstance) {
   const controller = new OnboardingController();
   const adminController = new AdminController();
@@ -17,14 +28,32 @@ export async function onboardingRouter(app: FastifyInstance) {
   const getClientAnamnesisController = new GetClientAnamnesisController();
   const createDietPrescriptionController = new CreateDietPrescriptionController();
 
-  // Public route: Authenticate user and generate token
+  // 🚀 MISSÃO 4: Rota de login atualizada para "Passwordless" (Sem Senhas)
   app.post('/sessions', async (request, reply) => {
-    const { email, password } = request.body as any;
+    // 🛡️ MISSÃO 1: Fim do 'as any' usando a validação estrita do Zod
+    const parseResult = authenticateOtpBodySchema.safeParse(request.body);
+
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        status: 'error',
+        message: 'Dados de autenticação inválidos.',
+        errors: parseResult.error.format()
+      });
+    }
+
+    // Captura os dados limpos e tipados do Zod
+    const { email, phone, otpCode } = parseResult.data;
     
     const authenticateUser = new AuthenticateUserService();
-    const { user } = await authenticateUser.execute({ email, password });
+    
+    // Executa o service enviando os dados mapeados pelo AuthenticateUserDTO
+    const { user } = await authenticateUser.execute({ email, phone, otpCode });
 
-    const token = app.jwt.sign({ role: user.role }, { sub: user.id, expiresIn: '15m' });
+    // 🔑 MISSÃO 2: Padronização absoluta do Subject JWT no campo 'sub'
+    const token = app.jwt.sign(
+      { role: user.role }, 
+      { sub: user.id, expiresIn: '15m' }
+    );
 
     return reply.status(200).send({
       user,
@@ -67,7 +96,7 @@ export async function onboardingRouter(app: FastifyInstance) {
       try {
         await request.jwtVerify();
         
-        // Strictly assert ADMIN authorizations
+        // MISSÃO 2: Extração limpa via request.user sem fallbacks obscuros
         const { role } = request.user as { role: string };
         if (role !== 'ADMIN') {
           return reply.status(403).send({ status: 'error', message: 'Access denied. Insufficient permissions.' });

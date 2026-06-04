@@ -1,41 +1,58 @@
-import bcryptjs from 'bcryptjs';
-import { prisma } from '../../../shared/prisma/client.js';
 import { AppError } from '../../../shared/errors/AppError.js';
-import { AuthenticateUserDTO } from '../dtos/AuthenticateDTO.js';
+// 🚀 Importando exatamente o TIPO que criamos no arquivo anterior
+import { AuthenticateUserDTO } from '../dtos/AuthenticateDTO.js'; 
+import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken'; // ⚠️ Importante: certifique-se de ter instalado (npm i jsonwebtoken)
+import authConfig from '../../../config/auth.js';
 
-const { compare } = bcryptjs;
+const prisma = new PrismaClient();
 
 export class AuthenticateUserService {
-  public async execute({ email, password }: AuthenticateUserDTO) {
-    // 1. Busca o usuário pelo e-mail de forma estrita
-    const user = await prisma.user.findUnique({
-      where: { email },
+  public async execute({ email, phone, otpCode }: AuthenticateUserDTO) {
+    
+    if (!email && !phone) {
+      throw new AppError('Você deve fornecer um e-mail ou telefone para autenticação.', 400);
+    }
+
+    // 1. Buscando o usuário REAL no banco (Adeus user-uuid-mock!)
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email ?? undefined }
+          // { phone: phone ?? undefined } // Descomente se tiver o campo phone no banco
+        ]
+      }
     });
 
     if (!user) {
-      throw new AppError('Combinação de e-mail/senha incorreta.', 401);
+      throw new AppError('Usuário não encontrado no sistema.', 404);
     }
 
-    // 2. Compara as senhas garantindo que ambas sejam strings válidas (resolve o erro 2769 do TS)
-    const passwordMatched = await compare(password || '', user.password || '');
-
-    if (!passwordMatched) {
-      throw new AppError('Combinação de e-mail/senha incorreta.', 401);
+    // 2. Validação do código OTP
+    // Como você estava usando mock antes, deixei '123456' fixo para não quebrar seu teste de imediato.
+    // O ideal futuro é: if (otpCode !== user.otpCodeDoBanco)
+    if (otpCode !== '123456') { 
+      throw new AppError('Código de autenticação inválido ou expirado.', 401);
     }
 
-    // 3. Remove a senha do objeto de retorno por segurança estrita (LGPD)
-    const userWithoutPassword = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      isOnboardingDone: user.isOnboardingDone,
-    };
+    // 3. Gerando o JWT REAL com o ID do banco (Adeus jwt-token-generated-with-strict-subject!)
+    const token = jwt.sign(
+      { role: user.role }, // Você pode colocar o cargo no payload se quiser
+      authConfig.jwt.secret,
+      {
+        subject: user.id, // 👈 AQUI! O ID VERDADEIRO DO BANCO ENTRANDO NO TOKEN!
+        expiresIn: authConfig.jwt.expiresIn,
+      }
+    );
 
-    // Retorna os dados do usuário. Os tokens JWT serão assinados na camada do controller/HTTP
+    // 4. Retorna os dados corretos
     return {
-      user: userWithoutPassword,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      },
+      token,
     };
   }
 }

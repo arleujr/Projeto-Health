@@ -1,6 +1,7 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -36,17 +37,6 @@ enum PlanStatus {
   DRAFT
   ACTIVE
   ARCHIVED
-}
-
-enum TicketUrgency {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum TicketStatus {
-  OPEN
-  RESOLVED
 }
 
 enum InsightType {
@@ -96,11 +86,11 @@ model Lead {
 
 model User {
   id                String        @id @default(uuid())
-  name              String?       // Opcional no início (pré-cadastro)
-  email             String?       @unique // Opcional no início
-  password          String?       // Senha criada no onboarding
+  name              String?
+  email             String?       @unique
+  password          String?
   phone             String?       @unique
-  cpf               String        @unique // Chave de liberação pós-venda
+  cpf               String        @unique
   role              UserRole      @default(CLIENT)
   isOnboardingDone  Boolean       @default(false) @map("is_onboarding_done")
   gatewayCustomerId String?       @unique @map("gateway_customer_id")
@@ -268,7 +258,7 @@ model WorkoutExecutionLog {
   metCalculatedCalories Float    @map("met_calculated_calories")
   rawData               Json     @map("raw_data")
   executedAt            DateTime @map("executed_at")
-  createdAt             DateTime @default(now()) @map("created_at")
+    createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -278,8 +268,42 @@ model WorkoutExecutionLog {
 }
 
 // ==========================================
-// 5. INTELIGÊNCIA ARTIFICIAL E SUPORTE
+// 5. INTELIGÊNCIA ARTIFICIAL E SUPORTE (HELPDESK OTIMIZADO)
 // ==========================================
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum TicketCategory {
+  CRITICAL    // 🚨 SLA Curto (ex: 4h) - Dor, Risco de Churn
+  ATTENTION   // 🟡 SLA Médio (ex: 12h) - Avaliar anamnese, Ajuste de Dieta
+  ROUTINE     // 🟢 SLA Longo (ex: 48h) - Dúvidas gerais
+}
+
+model SupportTicket {
+  id           String         @id @default(uuid())
+  clientId     String         @map("client_id")
+  agentId      String?        @map("agent_id") // Quem está atendendo
+  title        String         // Resumo da notificação
+  description  String         @db.Text // Relato completo do paciente ou IA
+  answer       String?        @db.Text // Resposta do profissional
+  category     TicketCategory @default(ROUTINE)
+  status       TicketStatus   @default(OPEN)
+  slaExpiresAt DateTime       @map("sla_expires_at") // O Motor do SLA
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  client       User           @relation("ClientTickets", fields: [clientId], references: [id], onDelete: Cascade)
+  agent        User?          @relation("AgentTickets", fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([status, category])
+  @@index([clientId])
+  @@index([agentId])
+  @@map("support_tickets")
+}
 
 model MlPredictiveInsight {
   id              String            @id @default(uuid())
@@ -299,20 +323,3 @@ model MlPredictiveInsight {
   @@map("ml_predictive_insights")
 }
 
-model SupportTicket {
-  id           String        @id @default(uuid())
-  clientId     String        @map("client_id")
-  agentId      String?       @map("agent_id")
-  question     String        @db.Text
-  urgencyLevel TicketUrgency @default(LOW) @map("urgency_level")
-  answer       String?       @db.Text
-  status       TicketStatus  @default(OPEN)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-
-  client       User          @relation("ClientTickets", fields: [clientId], references: [id], onDelete: Cascade)
-  agent        User?         @relation("AgentTickets", fields: [agentId], references: [id], onDelete: SetNull)
-
-  @@index([status, urgencyLevel])
-  @@map("support_tickets")
-}

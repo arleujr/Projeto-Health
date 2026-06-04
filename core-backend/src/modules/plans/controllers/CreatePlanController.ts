@@ -1,24 +1,67 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { CreatePlanService } from '../services/CreatePlanService.js';
-import { CreatePlanDTO } from '../dtos/CreatePlanDTO.js';
+
+// 1. Definição estrita dos sub-schemas para os campos JSON de conteúdo
+const ExerciseSchema = z.object({
+  name: z.string().min(2, "O nome do exercício é obrigatório"),
+  sets: z.number().int().positive(),
+  reps: z.number().int().positive(),
+  rest: z.number().int().nonnegative(),
+});
+
+const MealSchema = z.object({
+  time: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora deve ser HH:MM"),
+  name: z.string().min(2),
+  foods: z.array(z.string()).min(1, "A refeição precisa de pelo menos 1 alimento"),
+});
+
+// 2. Schema principal de validação do Body da Requisição
+const createPlanBodySchema = z.object({
+  clientId: z.string().uuid("O clientId deve ser um UUID válido"),
+  title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
+  description: z.string().optional(),
+  category: z.enum(['DIET', 'EXERCISE'], {
+    errorMap: () => ({ message: "A categoria deve ser estritamente 'DIET' ou 'EXERCISE'" })
+  }),
+  content: z.object({
+    splitType: z.string().optional(),
+    metEstimated: z.number().optional(),
+    exercises: z.array(ExerciseSchema).optional(),
+    dailyMacros: z.object({
+      carboidratos: z.number(),
+      proteinas: z.number(),
+      gorduras: z.number(),
+    }).optional(),
+    meals: z.array(MealSchema).optional(),
+  }),
+});
 
 export class CreatePlanController {
-  public async handle(request: FastifyRequest, reply: FastifyReply) {
-    // 🔑 Tenta capturar o ID de todas as formas possíveis que o Fastify-JWT injeta
-    const creatorId = 
-      (request.user as any)?.sub || 
-      (request.user as any)?.id || 
-      request.headers['x-user-id']; 
-    
-    // 🚨 DEFESA ABSOLUTA: Se o token não tiver o ID, barra aqui com a mensagem real
+  public async handle(request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    // 🔑 MISSÃO 2: Extração exclusiva via sub do Fastify-JWT (Sem fallbacks ocultos)
+    const creatorId = request.user?.sub;
+
     if (!creatorId) {
       return reply.status(401).send({
         status: 'error',
-        message: 'Não foi possível identificar o ID do profissional no Token JWT recebido.'
+        message: 'Não foi possível identificar o ID do profissional no Token JWT.'
       });
     }
 
-    const { title, description, category, content, clientId } = request.body as Omit<CreatePlanDTO, 'creatorId'>;
+    // 🛡️ MISSÃO 1: Intercepção e validação do Body com Zod (Garante runtime limpo)
+    const parseResult = createPlanBodySchema.safeParse(request.body);
+
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        status: 'error',
+        message: 'Falha na validação dos dados enviados.',
+        errors: parseResult.error.format() // Retorna a árvore exata de onde a tipagem falhou
+      });
+    }
+
+    // Dados 100% limpos e tipados sem nenhum 'as any'
+    const { title, description, category, content, clientId } = parseResult.data;
 
     const createPlanService = new CreatePlanService();
 
@@ -28,7 +71,7 @@ export class CreatePlanController {
       category,
       content,
       clientId,
-      creatorId: creatorId as string,
+      creatorId,
     });
 
     return reply.status(201).send(plan);

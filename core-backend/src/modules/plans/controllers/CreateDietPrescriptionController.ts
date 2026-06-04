@@ -3,8 +3,8 @@ import { CreateDietPrescriptionService } from '../services/CreateDietPrescriptio
 
 export class CreateDietPrescriptionController {
   public async handle(request: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
-    // Captura o ID do nutricionista logado através do token JWT
-    const nutriId = (request.user as { id: string }).id;
+    // 🌟 FIX: Fastify stores the logged-in user ID in 'sub'
+    const nutriId = (request.user as { sub: string }).sub;
     const { clientId, efiId, title, dailyMacros, meals } = request.body as any;
 
     const createDietPrescription = new CreateDietPrescriptionService();
