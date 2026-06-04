@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
-import { prisma } from '../../../shared/prisma/client';
-import { AppError } from '../../../shared/errors/AppError';
-
+import { prisma } from '../../../shared/prisma/client.js';
+import { AppError } from '../../../shared/errors/AppError.js';
 interface IRequest {
   message: string;
   userRole: string;
