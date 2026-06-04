@@ -1,34 +1,28 @@
 import fastify from 'fastify';
-import fastifyJwt from '@fastify/jwt'; 
-import cors from '@fastify/cors';
-import { authConfig } from '../../../config/auth.js';
-import { onboardingRouter } from '../../../modules/users/http/routes/onboarding.routes.js';
-import { plansRoutes } from '../../../modules/plans/infra/http/routes/plans.routes.js';
-import { authRoutes } from '../../../modules/users/http/routes/auth.routes.js'; // 👈 NOVA IMPORTAÇÃO
-import { globalExceptionHandler } from './middlewares/globalExceptionHandler.js';
+import fastifyJwt from '@fastify/jwt';
+import fastifyCors from '@fastify/cors';
 
-const app = fastify({
-  logger: process.env.NODE_ENV === 'development',
+const app = fastify();
+
+// habilita CORS
+app.register(fastifyCors, {
+  origin: '*', // ou configure os domínios permitidos
 });
 
-// 🚀 Register CORS
-app.register(cors, { origin: '*' });
-
-// 🚀 Register JWT plugin
+// habilita JWT
 app.register(fastifyJwt, {
-  secret: authConfig.jwt.secret,
+  secret: process.env.JWT_SECRET || 'supersecret',
 });
 
-// 1. Auth routes (O FIM DO ERRO 401)
-app.register(authRoutes, { prefix: '/v1/auth' }); // 👈 REGISTRO DA ROTA
+// exemplo de rota
+app.get('/ping', async () => {
+  return { message: 'pong' };
+});
 
-// 2. Onboarding and anamnesis routes
-app.register(onboardingRouter, { prefix: '/v1/onboarding' });
-
-// 3. Professional prescription routes
-app.register(plansRoutes, { prefix: '/v1/plans' });
-
-// Global error handler
-app.setErrorHandler(globalExceptionHandler);
-
-export { app };
+app.listen({ port: 3333 }, (err, address) => {
+  if (err) {
+    console.error(err);
+    process.exit(1);
+  }
+  console.log(`🚀 Server running at ${address}`);
+});

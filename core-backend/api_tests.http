@@ -1,5 +1,9 @@
+
+@baseUrl = https://projeto-health.onrender.com
+
+
 ### 1. Simular Webhook de Pagamento (Liberar CPF)
-POST http://localhost:3333/v1/onboarding/webhook-payment
+POST {{baseUrl}}/v1/onboarding/webhook-payment
 Content-Type: application/json
 
 {
@@ -8,8 +12,32 @@ Content-Type: application/json
 
 ###
 
+### Teste 1: Conversa Comum (Sem chamar o Banco de Dados)
+POST {{baseUrl}}/v1/copilot/chat
+Content-Type: application/json
+
+{
+  "message": "Oi! Quem é você e o que você pode fazer por mim?",
+  "userRole": "Nutricionista",
+  "userName": "João"
+}
+
+###
+
+### Teste 2: Ativando a Função Inteligente (Consulta Real no Prisma)
+POST {{baseUrl}}/v1/copilot/chat
+Content-Type: application/json
+
+{
+  "message": "Quantos pacientes ativos nós temos cadastrados no sistema agora?",
+  "userRole": "Nutricionista",
+  "userName": "João"
+}
+
+###
+
 ### 2. Simular Aluno Completando o Cadastro
-POST http://localhost:3333/v1/onboarding/register
+POST {{baseUrl}}/v1/onboarding/register
 Content-Type: application/json
 
 {
@@ -23,7 +51,7 @@ Content-Type: application/json
 ###
 
 ### 3. Simular Aluno Fazendo Login Real
-POST http://localhost:3333/v1/onboarding/sessions
+POST {{baseUrl}}/v1/onboarding/sessions
 Content-Type: application/json
 
 {
