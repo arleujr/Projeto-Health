@@ -38,10 +38,10 @@ export class AuthenticateUserService {
     // 3. Gerando o JWT REAL com o ID do banco (Adeus jwt-token-generated-with-strict-subject!)
     const token = jwt.sign(
       { role: user.role }, // Você pode colocar o cargo no payload se quiser
-      authConfig.jwt.secret,
+      authConfig.jwt.secret as string, // 👈 CORREÇÃO AQUI (Forçando a tipagem para string)
       {
         subject: user.id, // 👈 AQUI! O ID VERDADEIRO DO BANCO ENTRANDO NO TOKEN!
-        expiresIn: authConfig.jwt.expiresIn,
+        expiresIn: authConfig.jwt.expiresIn as any, // 👈 CORREÇÃO AQUI (Evita o erro de Overload)
       }
     );
 

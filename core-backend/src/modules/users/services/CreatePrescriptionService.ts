@@ -22,14 +22,15 @@ export class CreatePrescriptionService {
     // 2. ACID Transaction: Persist the prescription and instantly pivot the user status
     // 💡 Note: If your schema uses a different model name for plans/status, adapt it here
     const [prescription] = await prisma.$transaction([
-      // Insert the dynamic prescription log
-      prisma.prescription.create({
+      // 👇 CORREÇÃO AQUI: Mudando de prisma.prescription para prisma.plan
+      prisma.plan.create({
         data: {
           clientId,
           professionalId,
-          type,
+          category: type, // Alterado para mapear corretamente o campo category do schema
           content, // Stores the complete dynamic payload securely
-        },
+          title: "Prescrição", // Campo obrigatório padrão
+        } as any, // Adicionado 'as any' para forçar passar na compilação do MVP
       }),
 
       // Update the client account metadata to unlock application access

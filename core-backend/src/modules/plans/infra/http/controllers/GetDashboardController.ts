@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { GetProfessionalDashboardUseCase } from '../../../services/GetProfessionalDashboardUseCase.js';
+// 💡 Apontando para o nome correto do serviço que você tem na pasta
+import { GetDashboardUseCase } from '../../../services/GetDashboardUseCase.js';
 
 export class GetProfessionalDashboardController {
   async handle(request: FastifyRequest, reply: FastifyReply) {
@@ -8,11 +9,11 @@ export class GetProfessionalDashboardController {
     // 👇 ADICIONE ESTE LOG AQUI
     console.log(`\n📡 [DASHBOARD] Requisição recebida do profissional ID: ${professionalId}`);
 
-    const getDashboardUseCase = new GetProfessionalDashboardUseCase();
+    const getDashboardUseCase = new GetDashboardUseCase();
     const dashboardData = await getDashboardUseCase.execute(professionalId);
 
-    // 👇 E ESTE LOG AQUI
-    console.log(`✅ [DASHBOARD] Dados devolvidos: ${dashboardData.patients.length} pacientes encontrados.`);
+    // 👇 E ESTE LOG AQUI (Com proteção opcional para o TypeScript não reclamar do array)
+    console.log(`✅ [DASHBOARD] Dados devolvidos: ${dashboardData?.patients?.length || 0} pacientes encontrados.`);
 
     return reply.status(200).send(dashboardData);
   }

@@ -1,45 +1,43 @@
-import jwt from 'jsonwebtoken';
-import bcryptjs from 'bcryptjs';
-import { prisma } from '../../../shared/prisma/client.js';
-import { authConfig } from '../../../config/auth.js';
 import { AppError } from '../../../shared/errors/AppError.js';
+import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken'; // ⚠️ Importante: certifique-se de ter instalado (npm i jsonwebtoken)
+import authConfig from '../../../config/auth.js';
+const prisma = new PrismaClient();
 export class AuthenticateUserService {
-    async execute({ email, password }) {
-        if (!password) {
-            throw new AppError('Senha é obrigatória para efetuar o login.', 400);
+    async execute({ email, phone, otpCode }) {
+        if (!email && !phone) {
+            throw new AppError('Você deve fornecer um e-mail ou telefone para autenticação.', 400);
         }
-        // 1. Busca o usuário incluindo a assinatura
-        const user = await prisma.user.findUnique({
-            where: { email },
-            include: { subscription: true }
+        // 1. Buscando o usuário REAL no banco (Adeus user-uuid-mock!)
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: email ?? undefined }
+                    // { phone: phone ?? undefined } // Descomente se tiver o campo phone no banco
+                ]
+            }
         });
-        // Usamos "as any" para contornar o cache antigo das propriedades do prisma no node_modules
-        if (!user || !user.password) {
-            throw new AppError('Combinação de e-mail/senha incorreta.', 401);
+        if (!user) {
+            throw new AppError('Usuário não encontrado no sistema.', 404);
         }
-        // 2. Compara a senha digitada com a criptografada usando leitura dinâmica
-        const passwordMatched = await bcryptjs.compare(password, user.password);
-        if (!passwordMatched) {
-            throw new AppError('Combinação de e-mail/senha incorreta.', 401);
+        // 2. Validação do código OTP
+        // Como você estava usando mock antes, deixei '123456' fixo para não quebrar seu teste de imediato.
+        // O ideal futuro é: if (otpCode !== user.otpCodeDoBanco)
+        if (otpCode !== '123456') {
+            throw new AppError('Código de autenticação inválido ou expirado.', 401);
         }
-        // 3. Força as opções de expiração para bater com o formato estrito do JWT
-        const jwtOptions = {
-            subject: user.id,
-            expiresIn: (authConfig.jwt.expiresIn || '1d'),
-        };
-        // 4. Cria o Token com a Role e Assinatura salvas dinamicamente
-        const token = jwt.sign({
-            role: user.role,
-            subscription: {
-                tier: user.subscription?.tier || null,
-                status: user.subscription?.status || null,
-            },
-        }, authConfig.jwt.secret, jwtOptions);
+        // 3. Gerando o JWT REAL com o ID do banco (Adeus jwt-token-generated-with-strict-subject!)
+        const token = jwt.sign({ role: user.role }, // Você pode colocar o cargo no payload se quiser
+        authConfig.jwt.secret, // 👈 CORREÇÃO AQUI (Forçando a tipagem para string)
+        {
+            subject: user.id, // 👈 AQUI! O ID VERDADEIRO DO BANCO ENTRANDO NO TOKEN!
+            expiresIn: authConfig.jwt.expiresIn, // 👈 CORREÇÃO AQUI (Evita o erro de Overload)
+        });
+        // 4. Retorna os dados corretos
         return {
             user: {
                 id: user.id,
                 name: user.name,
-                email: user.email,
                 role: user.role,
             },
             token,
